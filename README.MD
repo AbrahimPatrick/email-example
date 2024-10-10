@@ -19,3 +19,11 @@ Substitua `<seu_tenant_id>`, `<seu_client_id>`, e `<seu_client_secret>` pelos va
 
 ```bash
 npm install
+```
+
+4. **Realizar testes**:
+- Execute o comando a seguir para realizar o teste da leitura de e-mails:
+
+```bash
+npm start
+```
