@@ -1,24 +1,30 @@
 import * as dotenv from 'dotenv';
-import imaps from 'imap-simple';
-import axios from 'axios';
-
 dotenv.config();
+
+import Imap, { parseHeader } from 'imap';
+import axios from 'axios';
 
 const tenantId = process.env.TENANT_ID as string;
 const clientId = process.env.CLIENT_ID as string;
 const clientSecret = process.env.CLIENT_SECRET as string;
-const email = process.env.EMAIL as string;
-const scope = 'https://outlook.office365.com/.default';
+const emailAddress = process.env.EMAIL as string;
+const oauthScope = 'https://outlook.office365.com/.default';
 const grantType = 'client_credentials';
 
-async function getAccessToken() {
+const buildXOAuth2Token = (user = '', accessToken = '') => Buffer
+    .from([`user=${user}`, `auth=Bearer ${accessToken}`, '', '']
+        .join('\x01'), 'utf-8')
+    .toString('base64');
+
+
+async function retrieveAccessToken() {
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
     const params = new URLSearchParams();
     params.append('grant_type', grantType);
     params.append('client_id', clientId);
     params.append('client_secret', clientSecret);
-    params.append('scope', scope);
+    params.append('scope', oauthScope);
 
     try {
         const response = await axios.post(tokenUrl, params);
@@ -30,39 +36,63 @@ async function getAccessToken() {
     }
 }
 
-async function connectToIMAP() {
+async function connectToImapServer() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    const accessToken = await retrieveAccessToken();
 
-    const accessToken = await getAccessToken();
+    const xoauth2Token: string = buildXOAuth2Token(emailAddress, accessToken);
 
-    const xoauth2Token = `user=${email}^Aauth=Bearer ${accessToken}^A^A`;
+    const imapConfig = new Imap({
+        xoauth2: xoauth2Token,
+        host: 'outlook.office365.com',
+        port: 993,
+        tls: true,
+        tlsOptions: {
+            rejectUnauthorized: false,
+            servername: 'outlook.office365.com'
+        }
+    } as any);
 
-    try {
-        const connection = await imaps.connect({
-            imap: {
-                user: 'testpai@plusoft.com',
-                xoauth2: Buffer.from(xoauth2Token).toString('base64'),
-                host: 'outlook.office365.com',
-                port: 993,
-                tls: true,
-                authTimeout: 3000,
-                password: ''
-            }
+    imapConfig.once('ready', () => {
+        imapConfig.openBox('INBOX', false, (err: any, box: any) => {
+            if (err) throw err;
+            imapConfig.search(['UNSEEN'], (err: any, results: any) => {
+                if (err) throw err;
+
+                const fetch = imapConfig.fetch(results, { bodies: '' });
+                fetch.on('message', (msg: any, seqno: any) => {
+                    console.log('Message #%d', seqno);
+                    const prefix = '(#' + seqno + ') ';
+                    msg.on('body', (stream: any, info: any) => {
+                        let buffer = '';
+                        stream.on('data', (chunk: any) => {
+                            buffer += chunk.toString('utf8');
+                        });
+                        stream.once('end', () => {
+                            console.log(prefix + 'Parsed header: %s', parseHeader(buffer));
+                        });
+                    });
+                    msg.once('attributes', (attrs: any) => {
+                        console.log(prefix + 'Attributes: %j', attrs);
+                    });
+                    msg.once('end', () => {
+                        console.log(prefix + 'Finished');
+                    });
+                });
+
+                fetch.once('end', () => {
+                    console.log('Done fetching all messages!');
+                    imapConfig.end();
+                });
+            });
         });
-        console.log('Connected to IMAP');
+    });
 
-        await connection.openBox('INBOX');
-        const messages = await connection.search(['UNSEEN'], { bodies: ['HEADER.FIELDS (FROM SUBJECT DATE)'], markSeen: false });
-
-        messages.forEach(message => {
-            console.log(`Subject: ${message.parts[0].body.subject}`);
-            console.log(`From: ${message.parts[0].body.from}`);
-        });
-
-        await connection.end();
-    } catch (err) {
+    imapConfig.once('error', (err: any) => {
         console.error('IMAP Error:', err);
-    }
+    });
+
+    imapConfig.connect();
 }
 
-connectToIMAP();
+connectToImapServer();

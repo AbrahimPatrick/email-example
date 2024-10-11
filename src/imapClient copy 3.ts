@@ -1,8 +1,8 @@
 import * as dotenv from 'dotenv';
-dotenv.config();
-
-import * as imaps from 'imap-simple';
+import imaps from 'imap-simple';
 import axios from 'axios';
+
+dotenv.config();
 
 const tenantId = process.env.TENANT_ID as string;
 const clientId = process.env.CLIENT_ID as string;
@@ -27,7 +27,7 @@ async function getAccessToken() {
 
     try {
         const response = await axios.post(tokenUrl, params);
-        console.log({ response })
+        console.log({ response });
         return response.data.access_token;
     } catch (error: any) {
         console.error('Error getting access token:', error.response.data);
@@ -37,31 +37,37 @@ async function getAccessToken() {
 
 async function connectToIMAP() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
     const accessToken = await getAccessToken();
 
-    const config = {
-        imap: {
-            user: email,
-            password: accessToken,
-            host: 'outlook.office365.com',
-            port: 993,
-            tls: true,
-            authTimeout: 3000,
-        }
-    };
+    const xoauth2Token = `user=${email}^Aauth=Bearer ${accessToken}^A^A`;
 
-    imaps.connect(config).then(connection => {
-        return connection.openBox('INBOX').then(() => {
-            return connection.search(['UNSEEN'], { bodies: ['HEADER.FIELDS (FROM SUBJECT DATE)'], markSeen: false });
+    try {
+        const connection = await imaps.connect({
+            imap: {
+                user: 'testpai@plusoft.com',
+                xoauth2: Buffer.from(xoauth2Token).toString('base64'),
+                host: 'outlook.office365.com',
+                port: 993,
+                tls: true,
+                authTimeout: 3000,
+                password: ''
+            }
         });
-    }).then(messages => {
+        console.log('Connected to IMAP');
+
+        await connection.openBox('INBOX');
+        const messages = await connection.search(['UNSEEN'], { bodies: ['HEADER.FIELDS (FROM SUBJECT DATE)'], markSeen: false });
+
         messages.forEach(message => {
             console.log(`Subject: ${message.parts[0].body.subject}`);
             console.log(`From: ${message.parts[0].body.from}`);
         });
-    }).catch(err => {
+
+        await connection.end();
+    } catch (err) {
         console.error('IMAP Error:', err);
-    });
+    }
 }
 
 connectToIMAP();

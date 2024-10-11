@@ -13,6 +13,11 @@ const email = process.env.EMAIL as string;
 const scope = 'https://outlook.office365.com/.default';
 const grantType = 'client_credentials';
 
+const _build_XOAuth2_token = (user = '', access_token = '') => Buffer
+    .from([`user=${user}`, `auth=Bearer ${access_token}`, '', '']
+        .join('\x01'), 'utf-8')
+    .toString('base64');
+
 async function getAccessToken() {
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
