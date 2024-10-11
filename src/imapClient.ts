@@ -7,6 +7,7 @@ dotenv.config();
 const tenantId = process.env.TENANT_ID as string;
 const clientId = process.env.CLIENT_ID as string;
 const clientSecret = process.env.CLIENT_SECRET as string;
+const email = process.env.EMAIL as string;
 const scope = 'https://outlook.office365.com/.default';
 const grantType = 'client_credentials';
 
@@ -31,24 +32,23 @@ async function getAccessToken() {
 
 async function connectToIMAP() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
     const accessToken = await getAccessToken();
 
-    const xoauth2Token = `user=${encodeURIComponent('testpai@plusoft.com')}\x01auth=Bearer ${accessToken}\x01\x01`;
-
-    const config = {
-        imap: {
-            user: 'testpai@plusoft.com',
-            xoauth2: Buffer.from(xoauth2Token).toString('base64'), // Converte para Base64
-            host: 'outlook.office365.com',
-            port: 993,
-            tls: true,
-            authTimeout: 3000,
-            password: ''
-        }
-    };
+    const xoauth2Token = `user=${email}^Aauth=Bearer ${accessToken}^A^A`;
 
     try {
-        const connection = await imaps.connect(config);
+        const connection = await imaps.connect({
+            imap: {
+                user: 'testpai@plusoft.com',
+                xoauth2: Buffer.from(xoauth2Token).toString('base64'),
+                host: 'outlook.office365.com',
+                port: 993,
+                tls: true,
+                authTimeout: 3000,
+                password: ''
+            }
+        });
         console.log('Connected to IMAP');
 
         await connection.openBox('INBOX');

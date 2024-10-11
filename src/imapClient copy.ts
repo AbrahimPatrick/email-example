@@ -6,11 +6,12 @@ import { parseHeader } from 'imap'; // Importa a função parseHeader
 import Imap from 'imap';
 import axios from 'axios';
 
-const tenantId = process.env.TENANT_ID as string; // Altere para o seu Tenant ID
-const clientId = process.env.CLIENT_ID as string; // Altere para o seu Client ID
-const clientSecret = process.env.CLIENT_SECRET as string; // Altere para o seu Client Secret 
-const scope = 'https://outlook.office365.com/.default'; // Escopo para acesso a e-mails
-const grantType = 'client_credentials'; // Tipo de concessão
+const tenantId = process.env.TENANT_ID as string;
+const clientId = process.env.CLIENT_ID as string;
+const clientSecret = process.env.CLIENT_SECRET as string;
+const email = process.env.EMAIL as string;
+const scope = 'https://outlook.office365.com/.default';
+const grantType = 'client_credentials';
 
 async function getAccessToken() {
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
@@ -35,7 +36,7 @@ async function connectToIMAP() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // Ignora erros de certificado
     const accessToken = await getAccessToken();
 
-    const xoauth2Token = `user=${encodeURIComponent('testpai@plusoft.com')}\x01auth=Bearer ${accessToken}\x01\x01`;
+    const xoauth2Token = `user=${encodeURIComponent(email)}\x01auth=Bearer ${accessToken}\x01\x01`;
 
     const imap = new Imap({
         user: 'testpai@plusoft.com', // Endereço de e-mail

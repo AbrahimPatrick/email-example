@@ -4,11 +4,12 @@ dotenv.config();
 import * as imaps from 'imap-simple';
 import axios from 'axios';
 
-const tenantId = process.env.TENANT_ID as string; // Altere para o seu Tenant ID
-const clientId = process.env.CLIENT_ID as string; // Altere para o seu Client ID
-const clientSecret = process.env.CLIENT_SECRET as string; // Altere para o seu Client Secret 
-const scope = 'https://outlook.office365.com/.default'; // Escopo para acesso a e-mails
-const grantType = 'client_credentials'; // Tipo de concessão
+const tenantId = process.env.TENANT_ID as string;
+const clientId = process.env.CLIENT_ID as string;
+const clientSecret = process.env.CLIENT_SECRET as string;
+const email = process.env.EMAIL as string;
+const scope = 'https://outlook.office365.com/.default';
+const grantType = 'client_credentials';
 
 async function getAccessToken() {
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
@@ -35,7 +36,7 @@ async function connectToIMAP() {
 
     const config = {
         imap: {
-            user: 'testpai@plusoft.com',
+            user: email,
             password: accessToken,
             host: 'outlook.office365.com',
             port: 993,

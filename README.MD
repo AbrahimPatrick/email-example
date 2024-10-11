@@ -10,9 +10,10 @@
    TENANT_ID=<seu_tenant_id> 
    CLIENT_ID=<seu_client_id> 
    CLIENT_SECRET=<seu_client_secret>
+   EMAIL=<seu_email>
    ```
 
-Substitua `<seu_tenant_id>`, `<seu_client_id>`, e `<seu_client_secret>` pelos valores apropriados que você obteve durante o registro do aplicativo no Azure.
+Substitua `<seu_tenant_id>`, `<seu_client_id>`, `<seu_client_secret>` e `<seu_email>` pelos valores apropriados que você obteve durante o registro do aplicativo no Azure.
 
 3. **Instale as Dependências**:
 - Execute o comando a seguir para instalar todas as dependências do projeto:
