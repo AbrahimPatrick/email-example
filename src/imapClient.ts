@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import imaps from 'imap-simple'; // Use a biblioteca imap-simple
+import imaps from 'imap-simple';
 import axios from 'axios';
 
 dotenv.config();
